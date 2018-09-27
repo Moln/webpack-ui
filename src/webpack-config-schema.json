@@ -1,0 +1,520 @@
+{
+    "title": "Person",
+    "type": "object",
+    "definitions": {
+        "common.pluginFunction": {
+            "description": "Function acting as plugin",
+            "instanceof": "Function",
+            "properties": {
+                "apply": {
+                    "description": "The run point of the plugin, required method.",
+                    "instanceof": "Function"
+                }
+            },
+            "additionalProperties": true,
+            "required": ["apply"]
+        },
+        "common.pluginObject": {
+            "description": "Plugin instance",
+            "type": "object",
+            "properties": {
+                "apply": {
+                    "description": "The run point of the plugin, required method.",
+                    "instanceof": "Function"
+                }
+            },
+            "additionalProperties": true,
+            "required": ["apply"]
+        },
+        "common.arrayOfStringOrStringArrayValues": {
+            "items": {
+                "description": "string or array of strings",
+                "anyOf": [
+                    {
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    {
+                        "items": {
+                            "description": "A non-empty string",
+                            "minLength": 1,
+                            "type": "string"
+                        },
+                        "type": "array"
+                    }
+                ]
+            },
+            "type": "array"
+        },
+        "common.arrayOfStringValues": {
+            "items": {
+                "description": "A non-empty string",
+                "minLength": 1,
+                "type": "string"
+            },
+            "type": "array"
+        },
+        "common.nonEmptyArrayOfUniqueStringValues": {
+            "items": {
+                "description": "A non-empty string",
+                "minLength": 1,
+                "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+        },
+        "entry": {
+            "oneOf": [
+                {
+                    "minProperties": 1,
+                    "additionalProperties": {
+                        "description": "An entry point with name",
+                        "oneOf": [
+                            {
+                                "description": "The string is resolved to a module which is loaded upon startup.",
+                                "minLength": 1,
+                                "type": "string"
+                            },
+                            {
+                                "description": "All modules are loaded upon startup. The last one is exported.",
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/definitions/common.nonEmptyArrayOfUniqueStringValues"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "description": "Multiple entry bundles are created. The key is the chunk name. The value can be a string or an array.",
+                    "type": "object"
+                },
+                {
+                    "description": "An entry point without name. The string is resolved to a module which is loaded upon startup.",
+                    "minLength": 1,
+                    "type": "string"
+                },
+                {
+                    "description": "An entry point without name. All modules are loaded upon startup. The last one is exported.",
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/common.nonEmptyArrayOfUniqueStringValues"
+                        }
+                    ]
+                },
+                {
+                    "description": "A Function returning an entry object, an entry string, an entry array or a promise to these things.",
+                    "instanceof": "Function"
+                }
+            ]
+        },
+        "externals": {
+            "anyOf": [
+                {
+                    "description": "An exact matched dependency becomes external. The same string is used as external dependency.",
+                    "type": "string"
+                },
+                {
+                    "additionalProperties": {
+                        "description": "The dependency used for the external",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "boolean"
+                            }
+                        ]
+                    },
+                    "description": "If an dependency matches exactly a property of the object, the property value is used as dependency.",
+                    "type": "object"
+                },
+                {
+                    "description": "`function(context, request, callback(err, result))` The function is called on each dependency.",
+                    "instanceof": "Function"
+                },
+                {
+                    "description": "Every matched dependency becomes external.",
+                    "instanceof": "RegExp"
+                },
+                {
+                    "items": {
+                        "description": "External configuration",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/externals"
+                            }
+                        ]
+                    },
+                    "type": "array"
+                }
+            ]
+        },
+        "module": {
+            "additionalProperties": false,
+            "properties": {
+                "noParse": {
+                    "description": "Don't parse files matching. It's matched against the full resolved request.",
+                    "items": {
+                        "description": "An absolute path, when the module starts with this path it is not parsed",
+                        "type": "string",
+                        "absolutePath": true
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "rules": {
+                    "$ref": "#/definitions/ruleSet-rules",
+                    "description": "An array of rules applied for modules."
+                }
+            },
+            "type": "object"
+        },
+        "output": {
+            "additionalProperties": false,
+            "properties": {
+                "filename": {
+                    "description": "Specifies the name of each output file on disk. You must **not** specify an absolute path here! The `output.path` option determines the location on disk the files are written to, filename is used solely for naming the individual files.",
+                    "type": "string",
+                    "absolutePath": false
+                },
+                "library": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "items": {
+                                "description": "A part of the library name",
+                                "type": "string"
+                            },
+                            "type": "array"
+                        }
+                    ],
+                    "description": "If set, export the bundle as library. `output.library` is the name."
+                },
+                "libraryTarget": {
+                    "description": "Type of library, default: `var`.",
+                    "enum": [
+                        "var",
+                        "assign",
+                        "this",
+                        "window",
+                        "self",
+                        "global",
+                        "commonjs",
+                        "commonjs2",
+                        "commonjs-module",
+                        "amd",
+                        "umd",
+                        "umd2",
+                        "jsonp"
+                    ],
+                    "type":"string"
+                },
+                "path": {
+                    "description": "The output directory as **absolute path** (required).",
+                    "type": "string",
+                    "absolutePath": true
+                },
+                "publicPath": {
+                    "description": "The `publicPath` specifies the public URL address of the output files when referenced in a browser.",
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "resolve": {
+            "additionalProperties": false,
+            "properties": {
+                "alias": {
+                    "description": "Redirect module requests",
+                    "anyOf": [
+                        {
+                            "additionalProperties": {
+                                "description": "New request",
+                                "type": "string"
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "items": {
+                                "description": "Alias configuration",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "alias": {
+                                        "description": "New request",
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "description": "Request to be redirected",
+                                        "type": "string"
+                                    },
+                                    "onlyModule": {
+                                        "description": "Redirect only exact matching request",
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "type": "array"
+                        }
+                    ]
+                },
+                "extensions": {
+                    "description": "Extensions added to the request when trying to find the file",
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/common.arrayOfStringValues"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "ruleSet-rule": {
+            "additionalProperties": false,
+            "properties": {
+                "exclude": {
+                    "description": "Shortcut for resource.exclude",
+                    "type":"string"
+                },
+                "include": {
+                    "description": "Shortcut for resource.include",
+                    "type":"string"
+                },
+                "test": {
+                    "description": "Shortcut for resource.test",
+                    "type":"string"
+                },
+                "use": {
+                    "description": "Modifiers applied to the module when rule is matched",
+                    "items":{
+                        "type":"string"
+                    },
+                    "type":"array"
+                }
+            },
+            "type": "object"
+        },
+        "ruleSet-rules": {
+            "items": {
+                "description": "A rule",
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/ruleSet-rule"
+                    }
+                ]
+            },
+            "type": "array"
+        },
+        "ruleSet-use": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/ruleSet-use-item"
+                },
+                {
+                    "instanceof": "Function"
+                },
+                {
+                    "items": {
+                        "description": "An use item",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/ruleSet-use-item"
+                            }
+                        ]
+                    },
+                    "type": "array"
+                }
+            ]
+        },
+        "ruleSet-use-item": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/ruleSet-loader"
+                },
+                {
+                    "instanceof": "Function"
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "loader": {
+                            "description": "Loader name",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/definitions/ruleSet-loader"
+                                }
+                            ]
+                        },
+                        "options": {
+                            "description": "Loader options",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/definitions/ruleSet-query"
+                                }
+                            ]
+                        },
+                        "ident": {
+                            "description": "Unique loader identifier",
+                            "type": "string"
+                        },
+                        "query": {
+                            "description": "Loader query",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/definitions/ruleSet-query"
+                                }
+                            ]
+                        }
+                    },
+                    "type": "object"
+                }
+            ]
+        },
+        "filter-item-types": {
+            "anyOf": [
+                {
+                    "instanceof": "RegExp"
+                },
+                {
+                    "type": "string"
+                },
+                {
+                    "instanceof": "Function"
+                }
+            ]
+        },
+        "filter-types": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/filter-item-types"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "description": "Rule to filter",
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/filter-item-types"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "properties": {
+        "mode": {
+            "type": "string",
+            "description": "Enable production optimizations or development hints.",
+            "enum": ["development", "production", "none"]
+        },
+        "entry": {
+            "description": "The entry point(s) of the compilation.",
+            "type": "array",
+            "format": "table",
+            "uniqueItems": true,
+            "items": {
+                "type": "object",
+                "title": "Entry",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    }
+                }
+            },
+            "default": [
+                {"name":"main", "path":"./index"}
+            ]
+        },
+        "context": {
+            "description": "The base directory (absolute path!) for resolving the `entry` option. If `output.pathinfo` is set, the included pathinfo is shortened to this directory.",
+            "type": "string",
+            "absolutePath": true
+        },
+        "output": {
+            "description": "Options affecting the output of the compilation. `output` options tell webpack how to write the compiled files to disk.",
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/output"
+                }
+            ]
+        },
+        "module": {
+            "description": "Options affecting the normal modules (`NormalModuleFactory`).",
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/module"
+                }
+            ]
+        },
+        "resolve": {
+            "description": "Options for the resolver",
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/resolve"
+                }
+            ]
+        },
+
+        "optimization": {
+            "description": "Enables/Disables integrated optimizations",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "minimize": {
+                    "description": "Enable minimizing the output. Uses optimization.minimizer.",
+                    "type": "boolean"
+                },
+                "minimizer": {
+                    "description": "Minimizer(s) to use for minimizing the output",
+                    "items":{
+                        "type":"object"
+                    },
+                    "type": "array"
+                }
+            }
+        },
+        "plugins": {
+            "description": "Add additional plugins to the compiler.",
+            "type": "array",
+            "items": {
+                "description": "Plugin of type object or instanceof Function",
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/common.pluginObject"
+                    },
+                    {
+                        "$ref": "#/definitions/common.pluginFunction"
+                    }
+                ]
+            }
+        },
+        "devServer": {
+            "description": "Options for the webpack-dev-server",
+            "type": "object"
+        },
+        "devtool": {
+            "description": "A developer tool to enhance debugging.",
+            "type": "string",
+            "enum": ["source-map", "inline-source-map", "eval-source-map", "hidden-source-map", "cheap-source-map", "cheap-module-source-map", "eval"]
+        },
+        "externals": {
+            "description": "Specify dependencies that shouldn't be resolved by webpack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
+            "type":"array",
+            "items": {
+                "description": "External configuration",
+                "title": "External",
+                "type": "string"
+            }
+        }
+    }
+}
